@@ -15,7 +15,7 @@
     <name>domain-insurance-delegated-authority</name>
     <version>26.10.3</version>
     <packaging>pom</packaging>
-    <description>Orchestrates delegated authority binders and status changes through the authority core. Developed by the Firefly Software Foundation.</description>
+    <description>Orchestrates delegated authority binder create, update, status, and close commands through the authority core. Developed by the Firefly Software Foundation.</description>
     <url>https://openplatform.fireflysoftware.io/domain-insurance-delegated-authority</url>
 
     <modules>

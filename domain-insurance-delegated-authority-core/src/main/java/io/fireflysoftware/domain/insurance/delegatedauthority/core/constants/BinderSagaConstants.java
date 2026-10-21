@@ -44,6 +44,14 @@ public final class BinderSagaConstants {
     public static final String CTX_RECORD = "binderIdRecord";
     public static final String CTX_PREVIOUS_STATUS = "previousBinderStatus";
 
+
+    public static final String SAGA_UPDATE_RECORD = "UpdateBinderSaga";
+    public static final String STEP_RETRIEVE_FOR_UPDATE = "retrieveBinderForUpdate";
+    public static final String STEP_UPDATE_RECORD = "updateBinder";
+    public static final String COMPENSATE_RESTORE_RECORD = "restoreBinder";
+    public static final String EVENT_RECORD_UPDATED = "binders.updated";
+    public static final String CTX_PREVIOUS_RECORD = "previousBinderRecord";
+
     private BinderSagaConstants() {
     }
 }

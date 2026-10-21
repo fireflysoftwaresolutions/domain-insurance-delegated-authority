@@ -20,7 +20,11 @@ import io.fireflysoftware.core.insurance.authority.sdk.model.BinderDTO;
 import io.fireflysoftware.domain.insurance.delegatedauthority.core.commands.CreateBinderCommand;
 import io.fireflysoftware.domain.insurance.delegatedauthority.core.commands.GetBinderQuery;
 import io.fireflysoftware.domain.insurance.delegatedauthority.core.commands.UpdateBinderStatusCommand;
+import io.fireflysoftware.domain.insurance.delegatedauthority.core.commands.UpdateBinderCommand;
+import io.fireflysoftware.domain.insurance.delegatedauthority.core.commands.RemoveBinderCommand;
+import io.fireflysoftware.domain.insurance.delegatedauthority.core.lifecycle.BinderRecordLifecycle;
 import io.fireflysoftware.domain.insurance.delegatedauthority.core.constants.BinderSagaConstants;
+import org.fireflyframework.cqrs.command.CommandBus;
 import org.fireflyframework.cqrs.query.QueryBus;
 import org.fireflyframework.orchestration.saga.engine.SagaEngine;
 import org.fireflyframework.orchestration.saga.engine.SagaResult;
@@ -38,10 +42,12 @@ public class DelegatedAuthorityServiceImpl implements DelegatedAuthorityService 
 
     private final SagaEngine sagaEngine;
     private final QueryBus queryBus;
+    private final CommandBus commandBus;
 
-    public DelegatedAuthorityServiceImpl(SagaEngine sagaEngine, QueryBus queryBus) {
+    public DelegatedAuthorityServiceImpl(SagaEngine sagaEngine, QueryBus queryBus, CommandBus commandBus) {
         this.sagaEngine = sagaEngine;
         this.queryBus = queryBus;
+        this.commandBus = commandBus;
     }
 
     @Override
@@ -66,6 +72,51 @@ public class DelegatedAuthorityServiceImpl implements DelegatedAuthorityService 
     @Override
     public Mono<BinderDTO> get(UUID binderId) {
         return queryBus.query(new GetBinderQuery(binderId));
+    }
+
+
+    @Override
+    public Mono<BinderDTO> update(UpdateBinderCommand command) {
+        StepInputs inputs = StepInputs.builder()
+                .forStepId(BinderSagaConstants.STEP_RETRIEVE_FOR_UPDATE, new GetBinderQuery(command.binderId()))
+                .forStepId(BinderSagaConstants.STEP_UPDATE_RECORD, command)
+                .build();
+        return sagaEngine.execute(BinderSagaConstants.SAGA_UPDATE_RECORD, inputs)
+                .flatMap(result -> outcome(result, BinderSagaConstants.STEP_UPDATE_RECORD, BinderDTO.class));
+    }
+
+    @Override
+    public Mono<BinderDTO> expire(UUID binderId, String statusReason) {
+        return transition(binderId, BinderDTO.BinderStatusEnum.EXPIRED, statusReason);
+    }
+
+    private Mono<BinderDTO> transition(UUID binderId, BinderDTO.BinderStatusEnum target, String statusReason) {
+        return get(binderId)
+                .switchIfEmpty(Mono.error(new IllegalStateException("Binder was not found")))
+                .flatMap(current -> {
+                    if (!BinderRecordLifecycle.canTransition(current.getBinderStatus(), target)) {
+                        String from = current.getBinderStatus() == null
+                                ? "unset"
+                                : current.getBinderStatus().getValue();
+                        return Mono.<BinderDTO>error(new IllegalStateException(
+                                "Binder " + binderId + " cannot move from " + from + " to " + target.getValue()));
+                    }
+                    return updateStatus(new UpdateBinderStatusCommand(binderId, target.getValue(), statusReason));
+                });
+    }
+
+    @Override
+    public Mono<Void> remove(UUID binderId) {
+        return get(binderId)
+                .switchIfEmpty(Mono.error(new IllegalStateException("Binder was not found")))
+                .flatMap(current -> {
+                    if (!BinderRecordLifecycle.canRemove(current.getBinderStatus())) {
+                        return Mono.error(new IllegalStateException(
+                                "Binder " + binderId + " is " + current.getBinderStatus().getValue()
+                                        + " and cannot be deleted; expire it so the binder history is kept"));
+                    }
+                    return commandBus.send(new RemoveBinderCommand(binderId));
+                });
     }
 
     private static <T> Mono<T> outcome(SagaResult result, String stepId, Class<T> type) {

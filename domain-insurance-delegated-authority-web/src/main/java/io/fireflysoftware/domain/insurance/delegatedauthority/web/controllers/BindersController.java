@@ -18,8 +18,10 @@ package io.fireflysoftware.domain.insurance.delegatedauthority.web.controllers;
 
 import io.fireflysoftware.core.insurance.authority.sdk.model.BinderDTO;
 import io.fireflysoftware.domain.insurance.delegatedauthority.core.commands.CreateBinderCommand;
+import io.fireflysoftware.domain.insurance.delegatedauthority.core.commands.UpdateBinderCommand;
 import io.fireflysoftware.domain.insurance.delegatedauthority.core.commands.UpdateBinderStatusCommand;
 import io.fireflysoftware.domain.insurance.delegatedauthority.core.services.DelegatedAuthorityService;
+import io.fireflysoftware.domain.insurance.delegatedauthority.interfaces.dtos.ReasonRequest;
 import io.fireflysoftware.domain.insurance.delegatedauthority.interfaces.dtos.StatusChangeRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -31,6 +33,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -98,5 +101,49 @@ public class BindersController {
         return service.updateStatus(new UpdateBinderStatusCommand(binderId, request.getStatus(), request.getStatusReason()))
                 .map(ResponseEntity::ok)
                 .switchIfEmpty(Mono.just(ResponseEntity.notFound().build()));
+    }
+
+    @Operation(summary = "Update binder", description = "Runs the update saga against core-insurance-delegated-authority. Status is left unchanged.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Updated",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = BinderDTO.class))),
+            @ApiResponse(responseCode = "404", description = "Not found", content = @Content)
+    })
+    @PutMapping(value = "/{binderId}", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    public Mono<ResponseEntity<BinderDTO>> update(
+            @Parameter(description = "Core identifier", required = true) @PathVariable UUID binderId,
+            @RequestBody BinderDTO body) {
+        return service.update(new UpdateBinderCommand(binderId, body))
+                .map(ResponseEntity::ok)
+                .switchIfEmpty(Mono.just(ResponseEntity.notFound().build()));
+    }
+
+    @Operation(summary = "Expire binder", description = "Expires a binder when the delegated authority core allows EXPIRED.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Updated",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = BinderDTO.class))),
+            @ApiResponse(responseCode = "404", description = "Not found", content = @Content)
+    })
+    @PostMapping(value = "/{binderId}/expire", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    public Mono<ResponseEntity<BinderDTO>> expire(
+            @Parameter(description = "Core identifier", required = true) @PathVariable UUID binderId,
+            @RequestBody ReasonRequest request) {
+        return service.expire(binderId, request.getStatusReason())
+                .map(ResponseEntity::ok)
+                .switchIfEmpty(Mono.just(ResponseEntity.notFound().build()));
+    }
+
+    @Operation(summary = "Remove binder", description = "Deletes the record through core-insurance-delegated-authority when that core allows removal.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "Removed"),
+            @ApiResponse(responseCode = "404", description = "Not found", content = @Content)
+    })
+    @DeleteMapping("/{binderId}")
+    public Mono<ResponseEntity<Void>> remove(
+            @Parameter(description = "Core identifier", required = true) @PathVariable UUID binderId) {
+        return service.remove(binderId)
+                .thenReturn(ResponseEntity.noContent().build());
     }
 }

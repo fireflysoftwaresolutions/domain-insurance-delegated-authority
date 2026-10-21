@@ -18,6 +18,7 @@ package io.fireflysoftware.domain.insurance.delegatedauthority.web.controllers;
 
 import io.fireflysoftware.core.insurance.authority.sdk.model.BinderDTO;
 import io.fireflysoftware.domain.insurance.delegatedauthority.core.services.DelegatedAuthorityService;
+import io.fireflysoftware.domain.insurance.delegatedauthority.interfaces.dtos.ReasonRequest;
 import io.fireflysoftware.domain.insurance.delegatedauthority.interfaces.dtos.StatusChangeRequest;
 import org.fireflyframework.web.error.config.ErrorHandlingProperties;
 import org.fireflyframework.web.error.converter.ExceptionConverterService;
@@ -107,5 +108,46 @@ class BindersControllerTest {
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody(BinderDTO.class);
+    }
+
+    @Test
+    void update_returns200() {
+        UUID id = UUID.randomUUID();
+        when(service.update(any())).thenReturn(Mono.just(new BinderDTO(id)));
+
+        webTestClient.put()
+                .uri("/api/v1/binders/{id}", id)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(new BinderDTO())
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(BinderDTO.class);
+    }
+
+    @Test
+    void expire_returns200() {
+        UUID id = UUID.randomUUID();
+        when(service.expire(any(), any())).thenReturn(Mono.just(new BinderDTO(id)));
+        ReasonRequest request = new ReasonRequest();
+        request.setStatusReason("Caller request");
+
+        webTestClient.post()
+                .uri("/api/v1/binders/{id}/expire", id)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(request)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(BinderDTO.class);
+    }
+
+    @Test
+    void remove_returns204() {
+        UUID id = UUID.randomUUID();
+        when(service.remove(id)).thenReturn(Mono.empty());
+
+        webTestClient.delete()
+                .uri("/api/v1/binders/{id}", id)
+                .exchange()
+                .expectStatus().isNoContent();
     }
 }

@@ -19,6 +19,7 @@ package io.fireflysoftware.domain.insurance.delegatedauthority.core.services;
 import io.fireflysoftware.core.insurance.authority.sdk.model.BinderDTO;
 import io.fireflysoftware.domain.insurance.delegatedauthority.core.commands.CreateBinderCommand;
 import io.fireflysoftware.domain.insurance.delegatedauthority.core.commands.UpdateBinderStatusCommand;
+import io.fireflysoftware.domain.insurance.delegatedauthority.core.commands.UpdateBinderCommand;
 import reactor.core.publisher.Mono;
 
 import java.util.UUID;
@@ -51,4 +52,29 @@ public interface DelegatedAuthorityService {
      * @return the record, or empty when the core has none
      */
     Mono<BinderDTO> get(UUID binderId);
+
+    /**
+     * Updates fields on a binder and leaves its status unchanged.
+     *
+     * @param command the update
+     * @return the record returned by the core
+     */
+    Mono<BinderDTO> update(UpdateBinderCommand command);
+
+    /**
+     * Expires a binder when the delegated authority core allows EXPIRED.
+     *
+     * @param binderId the core identifier
+     * @param statusReason optional reason stored by the status saga when the core keeps one
+     * @return the updated record
+     */
+    Mono<BinderDTO> expire(UUID binderId, String statusReason);
+
+    /**
+     * Deletes a binder when the core lifecycle allows removal.
+     *
+     * @param binderId the core identifier
+     * @return completion when the core has deleted the record
+     */
+    Mono<Void> remove(UUID binderId);
 }

@@ -33,7 +33,7 @@ import org.springframework.context.annotation.ComponentScan;
 info = @Info(
         title = "Domain Insurance Delegated Authority API",
         version = "1.0.0",
-        description = "Orchestrates delegated authority binders through core-insurance-delegated-authority. It records binder status through the delegated authority core. It does not bind a risk on the policies core, does not move money, and does not certify IFRS 17 or Solvency II.",
+        description = "Orchestrates delegated authority binders through core-insurance-delegated-authority. It creates, updates, changes status, and closes binders through the delegated authority core. It does not bind a risk on the policies core, does not move money, and does not certify IFRS 17 or Solvency II.",
         contact = @Contact(
                 name = "Firefly Software Foundation",
                 email = "dev@fireflysoftware.io"
