@@ -72,7 +72,7 @@ Status values accepted by the core: `DRAFT`, `ACTIVE`, `SUSPENDED`, `EXPIRED`.
 
 - Java 25
 - Apache Maven 3.9+
-- `core-insurance-delegated-authority-sdk` 26.10.3
+- `core-insurance-delegated-authority-sdk` 26.10.4
 - Apache Kafka on `localhost:9092` when event publishing is left at the default
 
 ### Environment
